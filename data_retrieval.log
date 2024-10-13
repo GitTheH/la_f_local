@@ -1,0 +1,6 @@
+2024-10-13 10:57:16,844:ERROR:Error fetching time series data for MMM: No time series data for symbol MMM
+2024-10-13 11:01:13,688:ERROR:Error fetching company overview for ACE: No data for symbol ACE
+2024-10-13 11:11:09,102:ERROR:Error fetching company overview for BA: could not convert string to float: 'None'
+2024-10-13 11:18:12,764:ERROR:Error fetching cash flow statements for JPM: invalid literal for int() with base 10: 'None'
+2024-10-13 11:25:02,077:ERROR:Error fetching news sentiment for JPM: No news sentiment data for symbol JPM
+2024-10-13 11:46:30,675:ERROR:Error fetching income statements for NKE: invalid literal for int() with base 10: 'None'

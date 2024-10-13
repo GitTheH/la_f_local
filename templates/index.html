@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analysis</title>
+</head>
+<body>
+    <h1>Stock Mutual Information Analysis</h1>
+    <form action="/analyze" method="POST">
+        <label for="stock1">Select Stock 1:</label>
+        <select name="stock1" id="stock1">
+            {% for stock in stocks %}
+                <option value="{{ stock['symbol'] }}">{{ stock['symbol'] }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <label for="stock2">Select Stock 2:</label>
+        <select name="stock2" id="stock2">
+            {% for stock in stocks %}
+                <option value="{{ stock['symbol'] }}">{{ stock['symbol'] }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <input type="submit" value="Run Analysis">
+    </form>
+</body>
+</html>

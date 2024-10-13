@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Dashboard</title>
+</head>
+<body>
+    <h1>{{ stock_info['name'] }} ({{ stock_info['symbol'] }}) Dashboard</h1>
+    <p>Sector: {{ stock_info['sector'] }}</p>
+    <p>Industry: {{ stock_info['industry'] }}</p>
+    <p>Market Cap: {{ stock_info['market_cap'] }}</p>
+
+    <h2>Recent Prices</h2>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Open</th>
+            <th>Close</th>
+            <th>Volume</th>
+        </tr>
+        {% for price in recent_prices %}
+        <tr>
+            <td>{{ price['date'] }}</td>
+            <td>{{ price['open'] }}</td>
+            <td>{{ price['close'] }}</td>
+            <td>{{ price['volume'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- Income statement or other financial data can be displayed similarly -->
+
+    <!-- Link to analysis tools below -->
+    <a href="/analyze/{{ stock_info['symbol'] }}">Run Advanced Analysis</a>
+</body>
+</html>
