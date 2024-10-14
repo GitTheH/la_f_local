@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="870a27e3-aaec-4df4-ade5-b32da5b6e25f" name="Changes" comment="Building to deploy...." />
+    <list default="true" id="870a27e3-aaec-4df4-ade5-b32da5b6e25f" name="Changes" comment="Adding requirements...">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -128,7 +131,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1728842030347</updated>
-      <workItem from="1728842032098" duration="28914000" />
+      <workItem from="1728842032098" duration="29605000" />
     </task>
     <task id="LOCAL-00001" summary="Working. Before adding Price volume relationship.">
       <option name="closed" value="true" />
@@ -170,7 +173,15 @@
       <option name="project" value="LOCAL" />
       <updated>1728871706742</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="Adding requirements...">
+      <option name="closed" value="true" />
+      <created>1728872639596</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1728872639596</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -180,7 +191,8 @@
     <MESSAGE value="Working. Before adding Price volume relationship." />
     <MESSAGE value="Working. Entire app (ugly) but functional, other than potential unexpected bugs." />
     <MESSAGE value="Building to deploy...." />
-    <option name="LAST_COMMIT_MESSAGE" value="Building to deploy...." />
+    <MESSAGE value="Adding requirements..." />
+    <option name="LAST_COMMIT_MESSAGE" value="Adding requirements..." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/la_francaise_local$local_try.coverage" NAME="local_try Coverage Results" MODIFIED="1728845318157" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
