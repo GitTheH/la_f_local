@@ -3,35 +3,316 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Dashboard</title>
+    <title>Stock Standalone Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&family=Roboto:wght@400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js for visualizations -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #F9FAFB;
+        }
+        h1, h2 {
+            font-family: 'Poppins', sans-serif;
+        }
+        .btn-primary {
+            background-color: #3B82F6;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #2563EB;
+        }
+        .btn-secondary {
+            background-color: #10B981;
+            transition: background-color 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #059669;
+        }
+        .section {
+            padding: 2rem;
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .fade-in {
+            animation: fadeIn 1s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
 </head>
-<body>
-    <h1>{{ stock_info['name'] }} ({{ stock_info['symbol'] }}) Dashboard</h1>
-    <p>Sector: {{ stock_info['sector'] }}</p>
-    <p>Industry: {{ stock_info['industry'] }}</p>
-    <p>Market Cap: {{ stock_info['market_cap'] }}</p>
+<body class="bg-gray-100">
 
-    <h2>Recent Prices</h2>
-    <table>
-        <tr>
-            <th>Date</th>
-            <th>Open</th>
-            <th>Close</th>
-            <th>Volume</th>
-        </tr>
-        {% for price in recent_prices %}
-        <tr>
-            <td>{{ price['date'] }}</td>
-            <td>{{ price['open'] }}</td>
-            <td>{{ price['close'] }}</td>
-            <td>{{ price['volume'] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <!-- Navigation Bar (Place this in all your HTML pages, at the top) -->
+    <nav class="bg-blue-500 p-4 text-white shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="text-xl font-bold">
+                <a href="/" class="hover:text-gray-300 transition duration-300 ease-in-out">Stock Analysis</a>
+            </div>
+            <div class="space-x-6">
+                <a href="/" class="hover:text-gray-300 transition duration-300 ease-in-out">Home</a>
+                <a href="/standalone" class="hover:text-gray-300 transition duration-300 ease-in-out">Standalone Analysis</a>
+                <a href="/multiple" class="hover:text-gray-300 transition duration-300 ease-in-out">Multiple Stock Analysis</a>
+            </div>
+        </div>
+    </nav>
 
-    <!-- Income statement or other financial data can be displayed similarly -->
+    <div class="container mx-auto py-10 px-4">
+        <div class="bg-white shadow-lg rounded-lg p-8 fade-in">
+            <h1 class="text-3xl font-bold text-center mb-4 text-gray-800">{{ stock_info.name }} ({{ stock_info.symbol }}) Dashboard</h1>
 
-    <!-- Link to analysis tools below -->
-    <a href="/analyze/{{ stock_info['symbol'] }}">Run Advanced Analysis</a>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 section">
+                <div>
+                    <p><strong>Sector:</strong> {{ stock_info.sector }}</p>
+                    <p><strong>Industry:</strong> {{ stock_info.industry }}</p>
+                    <p><strong>Market Cap:</strong> {{ stock_info.market_cap }}</p>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold">Latest Price Data ({{ recent_prices['date'][0] }})</h2>
+                    <p><strong>Open:</strong> {{ recent_prices['open'][0] }}</p>
+                    <p><strong>Close:</strong> {{ recent_prices['close'][0] }}</p>
+                    <p><strong>Volume:</strong> {{ recent_prices['volume'][0] }}</p>
+                </div>
+            </div>
+
+            <!-- Stock selection form -->
+            <div class="section">
+                <h2 class="text-xl font-bold mb-2">Select Another Stock</h2>
+                <form method="POST" action="/standalone" class="space-y-4">
+                    <select name="stock_symbol" id="stock_symbol_select" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for stock in stocks %}
+                            <option value="{{ stock.symbol }}" {% if stock.symbol == stock_info.symbol %} selected {% endif %}>{{ stock.symbol }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="submit" value="View Stock" class="btn-primary w-full p-2 text-white rounded-lg cursor-pointer">
+                </form>
+            </div>
+
+            <!-- YTD Visualization Section -->
+            <div class="section">
+                <h2 class="text-xl font-bold mb-4">Year-to-Date (YTD) Stock Data</h2>
+                <div class="grid grid-cols-1 md:grid-cols-1 gap-8">
+                    <!-- Price Chart -->
+                    <div>
+                        <h3 class="text-lg font-semibold">YTD Prices</h3>
+                        <canvas id="ytdPriceChart"></canvas>
+                    </div>
+
+                    <!-- Returns and Volume Chart Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-lg font-semibold">YTD Returns</h3>
+                            <canvas id="ytdReturnsChart"></canvas>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold">YTD Volume (in Dollars)</h3>
+                            <canvas id="ytdVolumeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Analysis -->
+            <div class="space-y-8 section">
+                <!-- Price-Volume Relationship -->
+                <div>
+                    <h3 class="text-lg font-semibold">Price-Volume Relationship</h3>
+                    <form action="/price_volume_relationship" method="POST" class="space-y-4 form-with-result">
+                        <div>
+                            <label for="pv_start_date" class="block font-semibold">Start Date:</label>
+                            <input type="date" name="start_date" id="pv_start_date" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        <div>
+                            <label for="pv_end_date" class="block font-semibold">End Date:</label>
+                            <input type="date" name="end_date" id="pv_end_date" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        <input type="hidden" name="stock_symbol" value="{{ stock_info.symbol }}">
+                        <input type="submit" value="Calculate" class="btn-secondary w-full p-2 text-white rounded-lg cursor-pointer">
+                        <p class="result mt-4 text-gray-800"></p>
+                        <button type="button" class="btn-secondary px-3 py-1 text-white rounded-lg mt-2" onclick="copyToClipboard(this)">Copy Result</button>
+                    </form>
+                </div>
+
+                <!-- Time-to-Revert Analysis -->
+                <div>
+                    <h3 class="text-lg font-semibold">Time to Revert Analysis</h3>
+                    <form action="/time_to_revert" method="POST" class="space-y-4 form-with-result">
+                        <div>
+                            <label for="tr_period" class="block font-semibold">Rolling Period (in days):</label>
+                            <input type="number" name="period" id="tr_period" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        <input type="hidden" name="stock_symbol" value="{{ stock_info.symbol }}">
+                        <input type="submit" value="Calculate" class="btn-secondary w-full p-2 text-white rounded-lg cursor-pointer">
+                        <p class="result mt-4 text-gray-800"></p>
+                        <button type="button" class="btn-secondary px-3 py-1 text-white rounded-lg mt-2" onclick="copyToClipboard(this)">Copy Result</button>
+                    </form>
+                </div>
+
+                <!-- Sharpe Ratio Analysis -->
+                <div>
+                    <h3 class="text-lg font-semibold">Sharpe Ratio Analysis</h3>
+                    <form action="/sharpe_ratio" method="POST" class="space-y-4 form-with-result">
+                        <div>
+                            <label for="sr_start_date" class="block font-semibold">Start Date:</label>
+                            <input type="date" name="start_date" id="sr_start_date" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        <div>
+                            <label for="sr_end_date" class="block font-semibold">End Date:</label>
+                            <input type="date" name="end_date" id="sr_end_date" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        <div>
+                            <label for="risk_free_rate" class="block font-semibold">Risk-Free Rate (in decimals):</label>
+                            <input type="number" name="risk_free_rate" id="risk_free_rate" step="0.001" value="0.01" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        <input type="hidden" name="stock_symbol" value="{{ stock_info.symbol }}">
+                        <input type="submit" value="Calculate" class="btn-secondary w-full p-2 text-white rounded-lg cursor-pointer">
+                        <p class="result mt-4 text-gray-800"></p>
+                        <button type="button" class="btn-secondary px-3 py-1 text-white rounded-lg mt-2" onclick="copyToClipboard(this)">Copy Result</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fetch and render the YTD data chart
+        document.addEventListener("DOMContentLoaded", function () {
+            const stockSymbol = "{{ stock_info.symbol }}";
+            fetch(`/get_ytd_data/${stockSymbol}`)
+                .then(response => response.json())
+                .then(data => {
+                    renderYTDCharts(data);
+                });
+        });
+
+        function renderYTDCharts(data) {
+            const ctxPrice = document.getElementById('ytdPriceChart').getContext('2d');
+            const ctxReturns = document.getElementById('ytdReturnsChart').getContext('2d');
+            const ctxVolume = document.getElementById('ytdVolumeChart').getContext('2d');
+
+            // YTD Prices Line Chart
+            new Chart(ctxPrice, {
+                type: 'line',
+                data: {
+                    labels: data.dates,
+                    datasets: [{
+                        label: 'Price',
+                        data: data.prices,
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'Date' } },
+                        y: { title: { display: true, text: 'Price' } }
+                    }
+                }
+            });
+
+            // YTD Returns Line Chart
+            new Chart(ctxReturns, {
+                type: 'line',
+                data: {
+                    labels: data.dates,
+                    datasets: [{
+                        label: 'Returns',
+                        data: data.returns,
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'Date' } },
+                        y: { title: { display: true, text: 'Returns (%)' } }
+                    }
+                }
+            });
+
+            // YTD Volume in Dollars Bar Chart
+            new Chart(ctxVolume, {
+                type: 'bar',
+                data: {
+                    labels: data.dates,
+                    datasets: [{
+                        label: 'Volume in Dollars',
+                        data: data.volumes_in_dollars,
+                        backgroundColor: '#3B82F6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'Date' } },
+                        y: { title: { display: true, text: 'Volume (in Dollars)' } }
+                    }
+                }
+            });
+        }
+
+        function copyToClipboard(button) {
+            const resultElement = button.previousElementSibling;
+            if (resultElement) {
+                const text = resultElement.textContent || resultElement.innerText;
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Result copied to clipboard!');
+                });
+            }
+        }
+
+        document.querySelectorAll('.form-with-result').forEach(form => {
+            form.onsubmit = async function (e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+                const resultElement = this.querySelector('.result');
+                if (!resultElement) {
+                    console.error("Result element not found for form");
+                    return;
+                }
+
+                resultElement.innerHTML = '';
+
+                try {
+                    const response = await fetch(this.action, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        resultElement.innerHTML = `<p class="text-red-500">Error: Unable to fetch data.</p>`;
+                        return;
+                    }
+
+                    const result = await response.json();
+                    if (result.error) {
+                        resultElement.innerHTML = `<p class="text-red-500">${result.error}</p>`;
+                    } else {
+                        let output = '<ul>';
+                        for (const [key, value] of Object.entries(result)) {
+                            output += `<li><strong>${key}</strong>: ${value}</li>`;
+                        }
+                        output += '</ul>';
+                        resultElement.innerHTML = output;
+                    }
+                } catch (error) {
+                    resultElement.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+                }
+            };
+        });
+    </script>
 </body>
 </html>

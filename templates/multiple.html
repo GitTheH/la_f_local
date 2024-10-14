@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Multiple Stock Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <style>
+        .stock-option {
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .stock-option.selected {
+            background-color: #3B82F6;
+            color: white;
+        }
+        .disabled {
+            cursor: not-allowed;
+            background-color: #A0AEC0;
+        }
+        button[disabled] {
+            cursor: not-allowed;
+            background-color: #A0AEC0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+<!-- Navigation Bar -->
+<nav class="bg-blue-500 p-4 text-white shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+        <div class="text-xl font-bold">
+            <a href="/" class="hover:text-gray-300 transition duration-300 ease-in-out">Stock Analysis</a>
+        </div>
+        <div class="space-x-6">
+            <a href="/" class="hover:text-gray-300 transition duration-300 ease-in-out">Home</a>
+            <a href="/standalone" class="hover:text-gray-300 transition duration-300 ease-in-out">Standalone Analysis</a>
+            <a href="/multiple" class="hover:text-gray-300 transition duration-300 ease-in-out">Multiple Stock Analysis</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mx-auto py-10 px-4">
+    <div class="bg-white shadow-lg rounded-lg p-8">
+        <h1 class="text-3xl font-bold text-center mb-6">Multiple Stock Analysis</h1>
+
+        <!-- Stock selection form -->
+        <form id="correlation-form" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-gray-700 font-semibold mb-2">Select Stocks:</label>
+                <div class="grid grid-cols-4 gap-2" id="stock-tickers">
+                    {% for stock in stocks %}
+                        <div class="stock-option p-2 border rounded-md text-center" data-symbol="{{ stock.symbol }}">{{ stock.symbol }}</div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="stock_symbols" id="stock_symbols">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="start_date" class="block text-gray-700 font-semibold mb-2">Start Date:</label>
+                    <input type="date" name="start_date" id="start_date" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div>
+                    <label for="end_date" class="block text-gray-700 font-semibold mb-2">End Date:</label>
+                    <input type="date" name="end_date" id="end_date" class="w-full p-2 border rounded-md" required>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button type="submit" id="correlationButton" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled" disabled>Compute Correlation Matrix</button>
+            </div>
+        </form>
+
+        <!-- Visualization section for correlation matrix -->
+        <div class="mt-10">
+            <h2 class="text-xl font-bold text-center">Correlation Matrix</h2>
+            <div id="heatmapContainer" class="flex justify-center mt-6"></div>
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold mb-2">Correlation Matrix Table</h3>
+                <table id="correlationTable" class="min-w-full bg-white"></table>
+                <button id="exportCSV" class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled" disabled>Export as CSV</button>
+            </div>
+        </div>
+
+        <!-- Cross-Stock Volatility -->
+        <div class="mt-10">
+            <h2 class="text-xl font-bold text-center">Cross-Stock Volatility</h2>
+            <form id="cross-volatility-form" method="POST" class="space-y-4">
+                <input type="hidden" name="stock_symbols" value="" id="cross-volatility-stocks">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="vol_start_date" class="block text-gray-700 font-semibold">Start Date:</label>
+                        <input type="date" name="start_date" id="vol_start_date" class="w-full p-2 border rounded-md" required>
+                    </div>
+                    <div>
+                        <label for="vol_end_date" class="block text-gray-700 font-semibold">End Date:</label>
+                        <input type="date" name="end_date" id="vol_end_date" class="w-full p-2 border rounded-md" required>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button type="submit" id="crossVolatilityButton" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled" disabled>Run Cross-Volatility</button>
+                </div>
+            </form>
+
+            <div id="cross-volatility-result" class="mt-6">
+                <canvas id="crossVolatilityChart" class="w-full mt-6"></canvas>
+                <button id="exportVolCSV" class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled" disabled>Export as CSV</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedStocks = [];
+    const currentDate = new Date().toISOString().split("T")[0];
+    const tenYearsAgo = new Date(new Date().setFullYear(new Date().getFullYear() - 10)).toISOString().split("T")[0];
+
+    document.getElementById("start_date").setAttribute("max", currentDate);
+    document.getElementById("end_date").setAttribute("max", currentDate);
+    document.getElementById("start_date").setAttribute("min", tenYearsAgo);
+    document.getElementById("end_date").setAttribute("min", tenYearsAgo);
+    document.getElementById("vol_start_date").setAttribute("max", currentDate);
+    document.getElementById("vol_end_date").setAttribute("max", currentDate);
+    document.getElementById("vol_start_date").setAttribute("min", tenYearsAgo);
+    document.getElementById("vol_end_date").setAttribute("min", tenYearsAgo);
+
+    // Stock selection logic
+    document.querySelectorAll('.stock-option').forEach(option => {
+        option.addEventListener('click', function () {
+            const symbol = this.dataset.symbol;
+            if (selectedStocks.includes(symbol)) {
+                selectedStocks = selectedStocks.filter(s => s !== symbol);
+                this.classList.remove('selected');
+            } else {
+                selectedStocks.push(symbol);
+                this.classList.add('selected');
+            }
+
+            const stockInput = document.getElementById('stock_symbols');
+            const correlationButton = document.getElementById('correlationButton');
+            const crossVolatilityButton = document.getElementById('crossVolatilityButton');
+            if (selectedStocks.length >= 2) {
+                stockInput.value = selectedStocks.join(',');
+                correlationButton.disabled = false;
+                correlationButton.classList.remove('disabled');
+                crossVolatilityButton.disabled = false;
+                crossVolatilityButton.classList.remove('disabled');
+            } else {
+                stockInput.value = '';
+                correlationButton.disabled = true;
+                correlationButton.classList.add('disabled');
+                crossVolatilityButton.disabled = true;
+                crossVolatilityButton.classList.add('disabled');
+            }
+        });
+    });
+
+    // Correlation Matrix submission
+    document.getElementById('correlation-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.set('stock_symbols', selectedStocks);
+
+        fetch('/correlation_matrix', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                renderHeatmap(data.heatmap);
+                renderCorrelationTable(data.correlation_matrix);
+                setupCSVExport(data.csv, 'exportCSV');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    });
+
+    // Cross Volatility submission
+    document.getElementById('cross-volatility-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.set('stock_symbols', selectedStocks);
+
+        fetch('/cross_volatility', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                renderVolatilityChart(data.dates, data.volatility_datasets);
+                setupCSVExport(data.volatilities_csv, 'exportVolCSV');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    });
+
+    function renderHeatmap(base64Image) {
+        const heatmapContainer = document.getElementById('heatmapContainer');
+        heatmapContainer.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = 'data:image/png;base64,' + base64Image;
+        img.alt = 'Correlation Matrix Heatmap';
+        img.classList.add('max-w-full', 'h-auto');
+        heatmapContainer.appendChild(img);
+    }
+
+    function renderCorrelationTable(correlationMatrix) {
+        const table = document.getElementById('correlationTable');
+        table.innerHTML = '';
+
+        const labels = Object.keys(correlationMatrix);
+        const headerRow = document.createElement('tr');
+        headerRow.innerHTML = '<th class="px-4 py-2 border"></th>' + labels.map(label => `<th class="px-4 py-2 border">${label}</th>`).join('');
+        table.appendChild(headerRow);
+
+        labels.forEach(rowLabel => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td class="px-4 py-2 border font-semibold">${rowLabel}</td>` + labels.map(colLabel => {
+                const value = correlationMatrix[rowLabel][colLabel];
+                return `<td class="px-4 py-2 border text-center">${value.toFixed(2)}</td>`;
+            }).join('');
+            table.appendChild(row);
+        });
+    }
+
+    function renderVolatilityChart(dates, datasets) {
+        const ctx = document.getElementById('crossVolatilityChart').getContext('2d');
+        if (window.myVolatilityChart) {
+            window.myVolatilityChart.destroy();
+        }
+
+        window.myVolatilityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: datasets
+            },
+            options: {
+                scales: {
+                    x: { title: { display: true, text: 'Date' }},
+                    y: { title: { display: true, text: 'Volatility' }}
+                },
+                elements: {
+                    line: {
+                        tension: 0
+                    },
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' }
+                }
+            }
+        });
+    }
+
+    // CSV Export Functionality
+    function setupCSVExport(csvData, buttonId) {
+        const exportButton = document.getElementById(buttonId);
+        exportButton.disabled = false;
+        exportButton.classList.remove('disabled');
+
+        exportButton.onclick = function () {
+            const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'data.csv');
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+    }
+</script>
+</body>
+</html>

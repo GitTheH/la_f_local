@@ -3,26 +3,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Analysis</title>
+    <title>Welcome to Stock Analysis Website</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hover-btn {
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        .hover-btn:hover {
+            background-color: #2563EB;
+            transform: scale(1.05);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .chart-container {
+            max-width: 100%;
+            height: 400px;
+        }
+
+        pre {
+            background-color: #f3f4f6;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: auto;
+            text-align: left;
+        }
+
+    </style>
 </head>
-<body>
-    <h1>Stock Mutual Information Analysis</h1>
-    <form action="/analyze" method="POST">
-        <label for="stock1">Select Stock 1:</label>
-        <select name="stock1" id="stock1">
-            {% for stock in stocks %}
-                <option value="{{ stock['symbol'] }}">{{ stock['symbol'] }}</option>
-            {% endfor %}
-        </select>
-        <br>
-        <label for="stock2">Select Stock 2:</label>
-        <select name="stock2" id="stock2">
-            {% for stock in stocks %}
-                <option value="{{ stock['symbol'] }}">{{ stock['symbol'] }}</option>
-            {% endfor %}
-        </select>
-        <br><br>
-        <input type="submit" value="Run Analysis">
-    </form>
+<body class="bg-gray-100">
+    <!-- Navigation Bar -->
+    <nav class="bg-blue-500 p-4 text-white shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="text-xl font-bold">
+                <a href="/" class="hover:text-gray-300 transition duration-300 ease-in-out">Stock Analysis</a>
+            </div>
+            <div class="space-x-6">
+                <a href="/" class="hover:text-gray-300 transition duration-300 ease-in-out">Home</a>
+                <a href="/standalone" class="hover:text-gray-300 transition duration-300 ease-in-out">Standalone Analysis</a>
+                <a href="/multiple" class="hover:text-gray-300 transition duration-300 ease-in-out">Multiple Stock Analysis</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Welcome Section -->
+    <section class="container mx-auto py-16 text-center">
+        <h1 class="text-4xl font-bold text-gray-800 fade-in">Welcome to the Stock Analysis Website</h1>
+        <p class="mt-4 text-xl text-gray-600 fade-in">Explore powerful stock insights with real-time data from Alpha Vantage, visualized with dynamic charts and advanced analytics.</p>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="container mx-auto py-10">
+        <div class="bg-white p-8 shadow-lg rounded-lg fade-in">
+            <h2 class="text-3xl font-bold text-center text-gray-800">How It Works</h2>
+            <p class="mt-4 text-lg text-gray-600">
+                The data for this site is sourced from the <strong>Alpha Vantage API</strong> and is stored in an <strong>SQLite database</strong>.
+                Data is gathered on various financial indicators such as cash flows, balance sheets, earnings reports, and stock price time series.
+                This data is used for detailed stock analysis, including correlation, volatility studies, and more.
+            </p>
+            <p class="mt-4 text-lg text-gray-600">Here's an example of a script used to fetch cash flow data:</p>
+
+            <pre class="fade-in mt-6">
+# Fetch cash flow statements for a stock symbol
+def fetch_cash_flow(symbol):
+    params = {
+        'function': 'CASH_FLOW',
+        'symbol': symbol,
+        'apikey': API_KEY
+    }
+    response = requests.get(BASE_URL, params=params)
+    reports = response.json().get('annualReports', [])
+
+    # Store relevant data
+    records = [
+        (symbol, report['fiscalDateEnding'], report['operatingCashflow'])
+        for report in reports if valid(report)
+    ]
+    cursor.executemany('''
+        INSERT INTO cash_flows (symbol, fiscal_date_ending, operating_cash_flow)
+        VALUES (?, ?, ?);
+    ''', records)
+    conn.commit()
+            </pre>
+
+            <p class="mt-4 text-lg text-gray-600">
+                The data collected includes balance sheets, income statements, earnings reports, and more.
+                Below is a breakdown of the key financial data categories stored in the database:
+            </p>
+
+            <div class="mt-4 text-left text-gray-600">
+                <ul class="list-disc pl-8">
+                    <li><strong>Balance Sheets</strong>: Total assets, liabilities, shareholder equity, and more.</li>
+                    <li><strong>Cash Flows</strong>: Operating, investing, and financing cash flows, along with free cash flow.</li>
+                    <li><strong>Earnings</strong>: Reported EPS, estimated EPS, earnings surprises.</li>
+                    <li><strong>Income Statements</strong>: Total revenue, net income, operating income, and expenses.</li>
+                    <li><strong>Daily Stock Prices</strong>: Open, close, high, low, volume, and adjusted prices.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Example Analysis Section -->
+    <section class="container mx-auto py-10">
+        <div class="bg-white p-8 shadow-lg rounded-lg fade-in">
+            <h2 class="text-3xl font-bold text-center text-gray-800">Explore the Analyses</h2>
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Standalone Example -->
+                <div class="bg-blue-50 p-6 rounded-lg shadow fade-in">
+                    <h3 class="text-xl font-bold text-gray-700">Standalone Stock Analysis</h3>
+                    <p class="mt-2 text-gray-600">Example: Sharpe Ratio for Apple Inc. (AAPL) from 2019 to today.</p>
+                    <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover-btn" onclick="loadStandaloneExample()">View Example</button>
+
+                    <!-- Standalone Placeholder -->
+                    <div id="standalone-chart" class="mt-6 hidden">
+                        <h4 class="text-md font-semibold">Sharpe Ratio Calculation</h4>
+                        <div class="text-6xl font-bold text-blue-600 mt-4 text-center fade-in"></div>
+                    </div>
+                </div>
+
+                <!-- Multiple Stock Example -->
+                <div class="bg-blue-50 p-6 rounded-lg shadow fade-in">
+                    <h3 class="text-xl font-bold text-gray-700">Multiple Stock Analysis</h3>
+                    <p class="mt-2 text-gray-600">Example: Cross-Stock Volatility for a selected set of stocks.</p>
+                    <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover-btn" onclick="loadMultipleExample()">View Example</button>
+
+                    <!-- Multiple Chart Placeholder -->
+                    <div id="multiple-chart" class="mt-6 hidden">
+                        <h4 class="text-md font-semibold">Cross-Stock Volatility</h4>
+                        <div class="chart-container fade-in">
+                            <canvas id="crossVolatilityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action Section -->
+    <section class="container mx-auto py-16 text-center">
+        <h2 class="text-3xl font-bold text-gray-800 fade-in">Ready to Explore?</h2>
+        <p class="mt-4 text-lg text-gray-600 fade-in">Start with our Standalone Stock Analysis or dive deeper with the Multiple Stock Analysis.</p>
+
+        <div class="mt-8 space-x-6">
+            <a href="/standalone" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover-btn">Go to Standalone Analysis</a>
+            <a href="/multiple" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover-btn">Go to Multiple Stock Analysis</a>
+        </div>
+    </section>
+
+    <script>
+        // Load Example Visualizations
+        function loadStandaloneExample() {
+            const chartDiv = document.getElementById('standalone-chart');
+            chartDiv.classList.add('hidden');  // Hide initially
+            setTimeout(() => {
+                fetch('/standalone_example')
+                    .then(response => response.json())
+                    .then(data => {
+                        chartDiv.classList.remove('hidden');
+                        chartDiv.classList.add('visible');  // Add fade-in effect
+                        document.querySelector('#standalone-chart .text-6xl').innerText = data.sharpe_ratio;
+                    });
+            }, 500);  // Slight delay before displaying result
+        }
+
+        function loadMultipleExample() {
+            const chartDiv = document.getElementById('multiple-chart');
+            const ctx = document.getElementById('crossVolatilityChart').getContext('2d');
+
+            chartDiv.classList.add('hidden');  // Hide initially
+            setTimeout(() => {
+                fetch('/multiple_example')
+                    .then(response => response.json())
+                    .then(data => {
+                        chartDiv.classList.remove('hidden');
+                        chartDiv.classList.add('visible');  // Add fade-in effect
+
+                        // Destroy any existing charts to prevent chart stacking
+                        if (window.myChart) {
+                            window.myChart.destroy();
+                        }
+
+                        window.myChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: data.dates,
+                                datasets: data.volatility_datasets
+                            },
+                            options: {
+                                scales: {
+                                    x: { title: { display: true, text: 'Date' }},
+                                    y: { title: { display: true, text: 'Volatility' }}
+                                },
+                                elements: {
+                                    line: { tension: 0 },  // Straight lines
+                                    point: { radius: 0 }  // No points to reduce clutter
+                                },
+                                responsive: true,
+                                maintainAspectRatio: true,  // Ensure it fits the container
+                                plugins: {
+                                    legend: { display: true, position: 'top' }
+                                }
+                            }
+                        });
+                    });
+            }, 500);  // Slight delay before displaying result
+        }
+
+        // On page load, trigger animations
+        window.onload = function() {
+            document.querySelectorAll('.fade-in').forEach(el => el.classList.add('visible'));
+        }
+    </script>
 </body>
 </html>
